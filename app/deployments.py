@@ -133,13 +133,18 @@ def process_deployment(
             message_options['icon_emoji'] = icon_emoji
         if username := deployment.slack_notification.get('username'):
             message_options['username'] = username
-        text = (
-            f'Updated deployment: {deployment.deployment_name}, '
+        messages = []
+        if prefix := deployment.slack_notification.get('messagePrefix'):
+            messages.append(prefix)
+        messages.append(
+            f'Updated deployment: {deployment.deployment_name}, \n'
             f'Image pushed at {regular_strftime(image_pushed_at)}'
         )
+        if suffix := deployment.slack_notification.get('messageSuffix'):
+            messages.append(suffix)
         send_slack_message(
             webhook_url=deployment.slack_notification['webhookUrl'],
             channel=deployment.slack_notification['channel'],
-            text=text,
+            text='\n'.join(messages),
             **message_options,
         )
