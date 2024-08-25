@@ -20,6 +20,8 @@ class EcrCredential:
     kube_config_context: str | None = None
 
     def get_ecr_client(self):
+        # cached_property にすると少し速そうだが
+        # 安定性を重視して毎回コンストラクトする。
         return boto3.client(
             'ecr',
             aws_access_key_id=self.aws_access_key_id,
@@ -27,29 +29,21 @@ class EcrCredential:
             region_name=self.region_name
         )
 
-    def get_k8s_configuration(self):
-        client.Configuration()
-
     def get_k8s_client(self) -> client.ApiClient:
-
-        # if self.kube_config_file or self.kube_config_context:
-        #     # Kubernetes の設定ファイルを読み込む
-        #     config.load_kube_config(config_file=self.kube_config_file, context=self.kube_config_context)
-        #
-        # # Kubernetes のクライアントを作成
-        # return client.CoreV1Api()
+        # cached_property にすると少し速そうだが
+        # 安定性を重視して毎回コンストラクトする。
         return config.new_client_from_config(
             config_file=self.kube_config_file,
             context=self.kube_config_context,
         )
-
 
     def update_credential_secret(self):
         # get secret
         ecr_client = self.get_ecr_client()
         response = ecr_client.get_authorization_token()
         auth_data = response['authorizationData'][0]
-        auth_token = base64.b64decode(auth_data['authorizationToken']).decode('utf-8')
+        auth_token = base64.b64decode(
+            auth_data['authorizationToken']).decode('utf-8')
         username, password = auth_token.split(':')
         # DockerリポジトリのURL
         proxy_endpoint = auth_data['proxyEndpoint'].replace('https://', '')
@@ -60,9 +54,6 @@ class EcrCredential:
                 proxy_endpoint: {
                     'username': username,
                     'password': password,
-                    # 'auth': base64.b64encode(
-                    #     f"{username}:{password}".encode()
-                    # ).decode()
                     'auth': auth_data['authorizationToken']
                 }
             }
@@ -70,6 +61,7 @@ class EcrCredential:
         secret = client.V1Secret(
             api_version='v1',
             kind='Secret',
+            type='kubernetes.io/dockerconfigjson',
             metadata=client.V1ObjectMeta(
                 name=self.secret_name,
                 namespace=self.namespace
