@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import os
 from dataclasses import dataclass
 
 import boto3
@@ -8,6 +9,17 @@ from kv_store import AbstractKVStore
 from logger import logger
 
 from kubernetes import client, config
+
+
+def get_credential_value(var):
+    """
+    If credential variable is `fromEnv: ENV_VAR_NAME`,
+    return the value of the environment variable.
+    """
+    if isinstance(var, dict):
+        if env_key := var.get('fromEnv'):
+            return os.environ.get(env_key)
+    return var
 
 
 @dataclass
@@ -29,11 +41,13 @@ class EcrCredential:
     def from_config(cls, config: dict, *, kv_store: AbstractKVStore):
         return cls(
             name=config['name'],
-            aws_access_key_id=config['awsAccessKeyId'],
-            aws_secret_access_key=config['awsSecretAccessKey'],
-            region_name=config['regionName'],
-            namespace=config['namespace'],
-            secret_name=config['secretName'],
+            aws_access_key_id=get_credential_value(config['awsAccessKeyId']),
+            aws_secret_access_key=get_credential_value(
+                config['awsSecretAccessKey']
+            ),
+            region_name=get_credential_value(config['regionName']),
+            namespace=get_credential_value(config['namespace']),
+            secret_name=get_credential_value(config['secretName']),
             kv_store=kv_store,
             kube_config_file=config.get('kubeConfigFile'),
             kube_config_context=config.get('kubeConfigContext'),

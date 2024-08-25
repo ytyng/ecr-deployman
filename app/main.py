@@ -4,6 +4,7 @@ ecr-deployman main loop
 """
 import time
 
+import dotenv
 from config_loader import load_config
 from credentials import CredentialsManager
 from deployments import Deployment, process_deployment
@@ -17,6 +18,7 @@ def main_loop():
     """
     logger.debug('Preparing to start application.')
 
+    dotenv.load_dotenv()
     config = load_config()
     kvs = SimpleKVStore()
     credentials_manager = CredentialsManager(

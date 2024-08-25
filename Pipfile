@@ -9,6 +9,7 @@ verify_ssl = true
 boto3 = "*"
 pyyaml = "*"
 kubernetes = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.12"
