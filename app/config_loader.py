@@ -10,11 +10,14 @@ def config_dirs():
 
 
 def load_config():
-    # 親ディレクトリをすべて確認して、config.yaml があったらパースして返す
+    """
+    Read config.yaml and return it as a dict
+    """
+    # 親ディレクトリをいくつか確認して、config.yaml があったらパースして返す
     for d in config_dirs():
         for config_path in [
-            d / "config.yaml",
-            d / "config.yml",
+            d / 'config.yaml',
+            d / 'config.yml',
         ]:
             if config_path.exists():
                 with config_path.open() as f:

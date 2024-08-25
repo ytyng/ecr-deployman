@@ -1,10 +1,11 @@
 import datetime
 from dataclasses import dataclass
 
-from kubernetes import client
-
-from kv_store import AbstractKVStore
 from credentials import CredentialsManager
+from kv_store import AbstractKVStore
+from logger import logger
+
+from kubernetes import client
 
 
 @dataclass
@@ -21,18 +22,23 @@ class Deployment:
         return f'Deployment-{self.namespace}-{self.deployment_name}-image_pushed_at'
 
 
+def regular_strftime(dt):
+    return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+
 def process_deployment(
-    *, deployment: Deployment,
+    *,
+    deployment: Deployment,
     credentials_manager: CredentialsManager,
-    kv_store: AbstractKVStore
+    kv_store: AbstractKVStore,
 ):
     """
-    デプロイメントの1件の処理
+    Process a single Deployment.
     """
-    print(f"Processing deployment: {deployment.deployment_name}")
+    logger.info(f'[{deployment.deployment_name}] Processing deployment ...')
     # authorize
     credential = credentials_manager.get_credential(deployment.credential_name)
-    print(credential)
+
     if credential.is_credential_secret_update_required():
         credential.update_credential_secret()
 
@@ -41,30 +47,44 @@ def process_deployment(
     response = ecr_client.describe_images(
         repositoryName=deployment.repository_name
     )
-    # タグでフィルター
+    # Filter by imageTag.
     if deployment.image_tag:
         _images = [
-            image for image in response['imageDetails']
-            if 'latest' in image.get('imageTags', [])]
+            image
+            for image in response['imageDetails']
+            if deployment.image_tag in image.get('imageTags', [])
+        ]
     else:
         _images = response['imageDetails']
 
     if not _images:
-        print(f"Image not found: {deployment.repository_name}")
+        logger.warning(
+            f'[{deployment.deployment_name}] '
+            f'Image {deployment.repository_name} not found. '
+            'Check ECR Repository page, and repositoryName in config.yaml, '
+            f'imageTag ({deployment.image_tag}).'
+        )
         return
 
     image = _images[0]
     image_pushed_at: datetime.datetime = image['imagePushedAt']
 
     # get last updated at
-    last_pushed_at = kv_store.get(
-        deployment.kvs_key_image_pushed_at
-    )
+    last_pushed_at = kv_store.get(deployment.kvs_key_image_pushed_at)
     if last_pushed_at and last_pushed_at >= image_pushed_at:
-        print("No update required")
+        logger.info(
+            f'[{deployment.deployment_name}] No update required. '
+            f'{deployment.repository_name} '
+            f'last_pushed_at={regular_strftime(last_pushed_at)}, '
+            f'image_pushed_at={regular_strftime(image_pushed_at)}'
+        )
         return
 
-    print(image_pushed_at.isoformat())
+    logger.info(
+        f'[{deployment.deployment_name}] Updating deployment: '
+        f'last_pushed_at={regular_strftime(last_pushed_at)}, '
+        f'image_pushed_at={regular_strftime(image_pushed_at)}'
+    )
 
     # update deployment
     k8s_client = credential.get_k8s_client()
@@ -82,10 +102,13 @@ def process_deployment(
                     },
                 }
             }
-        }
+        },
     )
-    print(response)
+    logger.debug(
+        f'[{deployment.deployment_name}] k8s patched response: {response}'
+    )
     kv_store.set(
         deployment.kvs_key_image_pushed_at,
         image_pushed_at,
     )
+    logger.info(f'[{deployment.deployment_name}] Updated deployment.')
