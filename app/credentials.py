@@ -1,9 +1,12 @@
 import base64
+import datetime
 import json
 from dataclasses import dataclass
 
 import boto3
 from kubernetes import client, config
+
+from kv_store import AbstractKVStore
 
 
 @dataclass
@@ -14,6 +17,7 @@ class EcrCredential:
     region_name: str
     namespace: str
     secret_name: str
+    kv_store: AbstractKVStore
     # kube_config_file, kube_config_context は指定してあれば使う。
     # ローカルで開発する際は使う。Kubernetes Pod で動かす場合は指定しない。
     kube_config_file: str | None = None
@@ -36,6 +40,23 @@ class EcrCredential:
             config_file=self.kube_config_file,
             context=self.kube_config_context,
         )
+
+    @property
+    def kvs_key_secret_updated_at(self):
+        return f'EcrCredential-{self.name}-secret_updated_at'
+
+    def is_credential_secret_update_required(self):
+        """
+        Secret の更新が必要かどうかを判定する。
+        """
+        secret_last_updated_at = self.kv_store.get(
+            self.kvs_key_secret_updated_at,
+        )
+        if not secret_last_updated_at:
+            return True
+        return (
+            datetime.datetime.now() - secret_last_updated_at
+        ).total_seconds() > 3600
 
     def update_credential_secret(self):
         # get secret
@@ -84,6 +105,10 @@ class EcrCredential:
             namespace=self.namespace,
             body=secret,
         )
+        self.kv_store.set(
+            self.kvs_key_secret_updated_at,
+            datetime.datetime.now(),
+        )
 
 
 class CredentialsManager:
@@ -91,7 +116,7 @@ class CredentialsManager:
     AWS の接続情報を管理するクラス
     """
 
-    def __init__(self, credentials_settings):
+    def __init__(self, credentials_settings, *, kv_store: AbstractKVStore):
         self.ecr_credentials = {
             cred['name']: EcrCredential(
                 name=cred['name'],
@@ -100,6 +125,7 @@ class CredentialsManager:
                 region_name=cred['regionName'],
                 namespace=cred['namespace'],
                 secret_name=cred['secretName'],
+                kv_store=kv_store,
                 kube_config_file=cred.get('kubeConfigFile'),
                 kube_config_context=cred.get('kubeConfigContext'),
             ) for cred in credentials_settings

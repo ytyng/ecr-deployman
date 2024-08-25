@@ -5,14 +5,18 @@ ecr-deployman main loop
 from config_loader import load_config
 from credentials import CredentialsManager
 from deployments import Deployment, process_deployment
-
+from kv_store import SimpleKVStore
 
 def main_loop():
     """
     Main loop
     """
     config = load_config()
-    credentials_manager = CredentialsManager(config['awsEcrCredentials'])
+    kvs = SimpleKVStore()
+    credentials_manager = CredentialsManager(
+        config['awsEcrCredentials'],
+        kv_store=kvs
+    )
     deployments = [
         Deployment(
             deployment_name=deploy['deploymentName'],
@@ -28,7 +32,8 @@ def main_loop():
     for deployment in deployments:
         process_deployment(
             deployment=deployment,
-            credentials_manager=credentials_manager
+            credentials_manager=credentials_manager,
+            kv_store=kvs,
         )
         break
 

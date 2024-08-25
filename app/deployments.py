@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from kubernetes import client
 
+from kv_store import AbstractKVStore
 from credentials import CredentialsManager
 
 
@@ -15,10 +16,15 @@ class Deployment:
     credential_name: str
     image_tag: str = 'latest'
 
+    @property
+    def kvs_key_image_pushed_at(self):
+        return f'Deployment-{self.namespace}-{self.deployment_name}-image_pushed_at'
+
 
 def process_deployment(
     *, deployment: Deployment,
-    credentials_manager: CredentialsManager
+    credentials_manager: CredentialsManager,
+    kv_store: AbstractKVStore
 ):
     """
     デプロイメントの1件の処理
@@ -27,7 +33,8 @@ def process_deployment(
     # authorize
     credential = credentials_manager.get_credential(deployment.credential_name)
     print(credential)
-    credential.update_credential_secret()
+    if credential.is_credential_secret_update_required():
+        credential.update_credential_secret()
 
     # describe image
     ecr_client = credential.get_ecr_client()
@@ -48,6 +55,14 @@ def process_deployment(
 
     image = _images[0]
     image_pushed_at: datetime.datetime = image['imagePushedAt']
+
+    # get last updated at
+    last_pushed_at = kv_store.get(
+        deployment.kvs_key_image_pushed_at
+    )
+    if last_pushed_at and last_pushed_at >= image_pushed_at:
+        print("No update required")
+        return
 
     print(image_pushed_at.isoformat())
 
