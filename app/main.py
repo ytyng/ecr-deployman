@@ -23,15 +23,7 @@ def main_loop():
         config['awsEcrCredentials'], kv_store=kvs
     )
     deployments = [
-        Deployment(
-            deployment_name=deploy['deploymentName'],
-            repository_prefix=deploy['repositoryPrefix'],
-            repository_name=deploy['repositoryName'],
-            image_tag=deploy.get('imageTag'),
-            namespace=deploy['namespace'],
-            credential_name=deploy['credentialName'],
-        )
-        for deploy in config['deployments']
+        Deployment.from_config(deploy) for deploy in config['deployments']
     ]
 
     logger.info(

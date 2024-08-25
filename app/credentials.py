@@ -25,6 +25,20 @@ class EcrCredential:
     kube_config_file: str | None = None
     kube_config_context: str | None = None
 
+    @classmethod
+    def from_config(cls, config: dict, *, kv_store: AbstractKVStore):
+        return cls(
+            name=config['name'],
+            aws_access_key_id=config['awsAccessKeyId'],
+            aws_secret_access_key=config['awsSecretAccessKey'],
+            region_name=config['regionName'],
+            namespace=config['namespace'],
+            secret_name=config['secretName'],
+            kv_store=kv_store,
+            kube_config_file=config.get('kubeConfigFile'),
+            kube_config_context=config.get('kubeConfigContext'),
+        )
+
     def get_ecr_client(self):
         # Using cached_property seems a bit faster,
         # but I prioritize stability and construct it every time.
@@ -122,17 +136,7 @@ class CredentialsManager:
 
     def __init__(self, credentials_settings, *, kv_store: AbstractKVStore):
         self.ecr_credentials = {
-            cred['name']: EcrCredential(
-                name=cred['name'],
-                aws_access_key_id=cred['awsAccessKeyId'],
-                aws_secret_access_key=cred['awsSecretAccessKey'],
-                region_name=cred['regionName'],
-                namespace=cred['namespace'],
-                secret_name=cred['secretName'],
-                kv_store=kv_store,
-                kube_config_file=cred.get('kubeConfigFile'),
-                kube_config_context=cred.get('kubeConfigContext'),
-            )
+            cred['name']: EcrCredential.from_config(cred, kv_store=kv_store)
             for cred in credentials_settings
         }
 

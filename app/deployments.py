@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from credentials import CredentialsManager
 from kv_store import AbstractKVStore
 from logger import logger
+from message_utils import send_slack_message
 
 from kubernetes import client
 
@@ -16,6 +17,19 @@ class Deployment:
     namespace: str
     credential_name: str
     image_tag: str = 'latest'
+    slack_notification: dict | None = None
+
+    @classmethod
+    def from_config(cls, config: dict):
+        return cls(
+            deployment_name=config['deploymentName'],
+            repository_prefix=config['repositoryPrefix'],
+            repository_name=config['repositoryName'],
+            image_tag=config.get('imageTag'),
+            namespace=config['namespace'],
+            credential_name=config['credentialName'],
+            slack_notification=config.get('slackNotification'),
+        )
 
     @property
     def kvs_key_image_pushed_at(self):
@@ -112,3 +126,20 @@ def process_deployment(
         image_pushed_at,
     )
     logger.info(f'[{deployment.deployment_name}] Updated deployment.')
+
+    if deployment.slack_notification:
+        message_options = {}
+        if icon_emoji := deployment.slack_notification.get('iconEmoji'):
+            message_options['icon_emoji'] = icon_emoji
+        if username := deployment.slack_notification.get('username'):
+            message_options['username'] = username
+        text = (
+            f'Updated deployment: {deployment.deployment_name}, '
+            f'Image pushed at {regular_strftime(image_pushed_at)}'
+        )
+        send_slack_message(
+            webhook_url=deployment.slack_notification['webhookUrl'],
+            channel=deployment.slack_notification['channel'],
+            text=text,
+            **message_options,
+        )
