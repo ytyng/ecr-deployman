@@ -1,0 +1,9 @@
+.venv
+.git
+.nuxt
+.idea
+*.pyc
+dist
+mediafiles
+staticfiles
+node_modules
