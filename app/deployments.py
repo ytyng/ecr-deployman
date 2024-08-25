@@ -85,3 +85,7 @@ def process_deployment(
         }
     )
     print(response)
+    kv_store.set(
+        deployment.kvs_key_image_pushed_at,
+        image_pushed_at,
+    )
