@@ -7,3 +7,6 @@ dist
 mediafiles
 staticfiles
 node_modules
+.env
+config.yaml
+config.yml
