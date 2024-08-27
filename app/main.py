@@ -3,6 +3,7 @@
 ecr-deployman main loop
 """
 import time
+import traceback
 
 import dotenv
 from config_loader import load_config
@@ -43,10 +44,12 @@ def main_loop():
                     kv_store=kvs,
                 )
             except Exception as e:
+
                 logger.warning(
                     f'[ERROR] {deployment.deployment_name}: '
                     f'{e.__class__.__name__}:{e}'
                 )
+                logger.debug(traceback.format_exc())
 
         time.sleep(60)
 
