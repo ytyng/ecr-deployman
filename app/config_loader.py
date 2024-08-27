@@ -4,7 +4,7 @@ import yaml
 
 
 def config_dirs():
-    curdir = Path(__file__).resolve().parent.parent
+    curdir = Path(__file__).resolve().parent
     yield curdir
     yield curdir.parent
 
