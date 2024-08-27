@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ecr-deployman-pod
+  namespace: ytyng
+spec:
+  containers:
+    - name: ecr-deployman
+      image: ytyng/ecr-deployman:latest
+      imagePullPolicy: Always
+      envFrom:
+        - secretRef:
+            name: ecr-deployman-env
+
+      volumeMounts:
+        - mountPath: /app/config.yaml
+          subPath: config.yaml
+          name: ecr-deployman-config
+        - mountPath: /app/storage
+          name: ecr-deployman-storage
+
+  volumes:
+    - name: ecr-deployman-config
+      configMap:
+        name: ecr-deployman-config
+    - name: ecr-deployman-storage
+      hostPath:
+        path: /data/ecr-deployman/storage
+        type: Directory

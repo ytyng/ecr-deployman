@@ -66,10 +66,13 @@ class EcrCredential:
     def get_k8s_client(self) -> client.ApiClient:
         # Using cached_property seems a bit faster,
         # but I prioritize stability and construct it every time.
-        return config.new_client_from_config(
-            config_file=self.kube_config_file,
-            context=self.kube_config_context,
-        )
+        if self.kube_config_file or self.kube_config_context:
+            return config.new_client_from_config(
+                config_file=self.kube_config_file,
+                context=self.kube_config_context,
+            )
+        else:
+            return client.ApiClient()
 
     @property
     def kvs_key_secret_updated_at(self):
