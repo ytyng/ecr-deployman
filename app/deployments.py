@@ -96,7 +96,8 @@ def process_deployment(
 
     logger.info(
         f'[{deployment.deployment_name}] Updating deployment: '
-        f'last_pushed_at={regular_strftime(last_pushed_at)}, '
+        'last_pushed_at='
+        f'{regular_strftime(last_pushed_at) if last_pushed_at else None}, '
         f'image_pushed_at={regular_strftime(image_pushed_at)}'
     )
 
