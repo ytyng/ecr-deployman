@@ -72,6 +72,7 @@ class EcrCredential:
                 context=self.kube_config_context,
             )
         else:
+            config.load_incluster_config()
             return client.ApiClient()
 
     @property
