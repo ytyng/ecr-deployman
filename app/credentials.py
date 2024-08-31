@@ -131,11 +131,15 @@ class EcrCredential:
 
         k8s_client = self.get_k8s_client()
         v1 = client.CoreV1Api(k8s_client)
-        v1.delete_namespaced_secret(
-            name=self.secret_name,
-            namespace=self.namespace,
-            body=client.V1DeleteOptions(),
-        )
+        try:
+            v1.delete_namespaced_secret(
+                name=self.secret_name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(),
+            )
+        except client.exceptions.ApiException as e:
+            if e.status != 404:
+                raise
         v1.create_namespaced_secret(
             namespace=self.namespace,
             body=secret,
