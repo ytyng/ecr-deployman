@@ -140,6 +140,7 @@ class EcrCredential:
         except client.exceptions.ApiException as e:
             if e.status != 404:
                 raise
+            logger.info(f'404: {e.__class__.__name__}: {e}')
         v1.create_namespaced_secret(
             namespace=self.namespace,
             body=secret,
