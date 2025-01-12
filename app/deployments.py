@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
+import requests
 from credentials import CredentialsManager
 from kv_store import AbstractKVStore
 from logger import logger
@@ -18,6 +19,7 @@ class Deployment:
     credential_name: str
     image_tag: str = 'latest'
     slack_notification: dict | None = None
+    webhooks: list[dict] | None = None
 
     @classmethod
     def from_config(cls, config: dict):
@@ -29,6 +31,7 @@ class Deployment:
             namespace=config['namespace'],
             credential_name=config['credentialName'],
             slack_notification=config.get('slackNotification'),
+            webhooks=config.get('webhooks'),
         )
 
     @property
@@ -149,3 +152,48 @@ def process_deployment(
             text='\n'.join(messages),
             **message_options,
         )
+
+    if deployment.webhooks:
+        for i, webhook in enumerate(deployment.webhooks):
+            try:
+                send_webhook(webhook)
+            except Exception as e:
+                logger.warning(
+                    f'[{deployment.deployment_name}] Webhook [{i}] failed: '
+                    f'{e.__class__.__name__}: {e}'
+                )
+
+
+def send_webhook(webhook: dict):
+    """
+    Send webhook request.
+
+    config.yaml:
+    ```yaml
+    webhooks:
+      - url: https://example.com
+        method: POST
+        headers:
+          "Content-Type": "application/json"
+        json:
+          key: value
+    ```
+    As shown above, a request can be made by specifying it
+    in the format requests.request.
+    """
+    method = webhook.pop('method', 'POST').upper()
+    if method not in ['POST', 'GET']:
+        raise ValueError(f'Invalid method: {method}')
+    url = webhook.pop('url')
+    if not url:
+        raise ValueError('Webhook URL not provided.')
+    response = requests.request(
+        method,
+        url,
+        **webhook,
+    )
+    response.raise_for_status()
+    logger.info(
+        f'Webhook sent: {url}: '
+        f'status={response.status_code}, response={response.text}'
+    )
