@@ -5,4 +5,4 @@ container_name=ecr-deployman
 
 # GITHUB_RUN_NUMBER があれば使い、なければ git rev-list --count HEAD を使う
 tag_suffix=${GITHUB_RUN_NUMBER:-$(git rev-list --count HEAD)}
-image_tag=0.2.${tag_suffix}
+image_tag=0.3.${tag_suffix}
