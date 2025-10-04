@@ -21,13 +21,19 @@ def main_loop():
 
     dotenv.load_dotenv()
     config = load_config()
+
+    if 'awsEcrCredentials' not in config:
+        raise ValueError('No AWS ECR credentials found in configuration.')
+
     kvs = SimpleKVStore()
     credentials_manager = CredentialsManager(
         config['awsEcrCredentials'], kv_store=kvs
     )
-    deployments = [
-        Deployment.from_config(deploy) for deploy in config['deployments']
-    ]
+    deployments = (
+        [Deployment.from_config(deploy) for deploy in config['deployments']]
+        if 'deployments' in config
+        else []
+    )
 
     logger.info(
         'Application started. '
