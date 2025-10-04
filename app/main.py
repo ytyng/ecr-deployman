@@ -29,11 +29,10 @@ def main_loop():
     credentials_manager = CredentialsManager(
         config['awsEcrCredentials'], kv_store=kvs
     )
-    deployments = (
-        [Deployment.from_config(deploy) for deploy in config['deployments']]
-        if 'deployments' in config
-        else []
-    )
+    deployments = [
+        Deployment.from_config(deploy)
+        for deploy in config.get('deployments', [])
+    ]
 
     logger.info(
         'Application started. '
