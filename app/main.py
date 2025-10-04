@@ -31,7 +31,7 @@ def main_loop():
     )
     deployments = [
         Deployment.from_config(deploy)
-        for deploy in config.get('deployments', [])
+        for deploy in config.get('deployments') or []
     ]
 
     logger.info(
