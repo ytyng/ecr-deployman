@@ -1,11 +1,11 @@
 FROM python:3.12-bookworm AS builder
 
-COPY Pipfile /tmp/Pipfile
-COPY Pipfile.lock /tmp/Pipfile.lock
 
-RUN python3 -m pip install pipenv \
-  && PIPENV_PIPFILE=/tmp/Pipfile pipenv install \
-  --system --ignore-pipfile --deploy
+COPY pyproject.toml ./pyproject.toml
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+RUN /root/.local/bin/uv pip install -r ./pyproject.toml --system
 
 FROM python:3.12-slim-bookworm
 

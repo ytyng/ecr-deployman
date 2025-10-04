@@ -1,0 +1,12 @@
+[project]
+name = "ecr-deployman"
+version = "0.2.0"
+description = "ECR Deployment Manager"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+  "boto3",
+  "pyyaml",
+  "kubernetes",
+  "python-dotenv",
+]
