@@ -1,5 +1,7 @@
 # ecr-deployman
 
+![](./documents/images/feature-image.png)
+
 It monitors the ECR image repository and deploys new images to Kubernetes when they are pushed.
 
 You don't need a Github account.
