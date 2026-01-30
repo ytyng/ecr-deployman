@@ -1,6 +1,6 @@
 # ecr-deployman
 
-![](./documents/images/feature-image.png)
+![](./documents/images/featured-image.png)
 
 It monitors the ECR image repository and deploys new images to Kubernetes when they are pushed.
 
