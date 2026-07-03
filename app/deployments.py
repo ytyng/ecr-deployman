@@ -181,10 +181,13 @@ def send_webhook(webhook: dict):
     As shown above, a request can be made by specifying it
     in the format requests.request.
     """
+    # pop で呼び出し元 (config の dict) を破壊しないようコピーする。
+    # 破壊すると 2 回目以降の送信が KeyError: 'url' で失敗する。
+    webhook = dict(webhook)
     method = webhook.pop('method', 'POST').upper()
     if method not in ['POST', 'GET']:
         raise ValueError(f'Invalid method: {method}')
-    url = webhook.pop('url')
+    url = webhook.pop('url', None)
     if not url:
         raise ValueError('Webhook URL not provided.')
     response = requests.request(
