@@ -4,65 +4,65 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-ecr-deployman は ECR (Amazon Elastic Container Registry) のイメージリポジトリを監視し、新しいイメージが push されたら Kubernetes にデプロイするツールです。
+ecr-deployman is a tool that monitors image repositories in ECR (Amazon Elastic Container Registry) and deploys to Kubernetes when a new image is pushed.
 
-主な機能:
-- ECR リポジトリの監視（1分ごと）
-- 新しいイメージ検出時の Kubernetes Deployment 自動更新
-- Slack 通知
-- 複数の ECR クレデンシャル・デプロイメント設定対応
+Main features:
+- Monitoring ECR repositories (every minute)
+- Automatic update of the Kubernetes Deployment when a new image is detected
+- Slack notifications
+- Support for multiple ECR credential and deployment settings
 
 ## Project Structure
 
 ```
 app/
-├── main.py              # エントリーポイント、メインループ
-├── config_loader.py     # YAML 設定ファイルのロード
-├── credentials.py       # AWS ECR クレデンシャル管理
-├── deployments.py       # Deployment 処理、ECR 監視、K8s 更新
-├── kv_store.py         # シンプルな Key-Value ストレージ
-├── logger.py           # ログ設定
-├── message_utils.py    # Slack 通知メッセージ生成
-└── storage/            # 永続化データ保存ディレクトリ
+├── main.py              # Entry point, main loop
+├── config_loader.py     # Loads the YAML config file
+├── credentials.py       # AWS ECR credential management
+├── deployments.py       # Deployment processing, ECR monitoring, K8s updates
+├── kv_store.py         # Simple key-value storage
+├── logger.py           # Logging configuration
+├── message_utils.py    # Builds Slack notification messages
+└── storage/            # Directory for persisted data
 
 docker/
-├── Dockerfile          # コンテナイメージビルド定義
-├── build.sh           # ビルドスクリプト
-├── config.sh          # Docker 設定（イメージ名等）
-├── login.sh           # ECR ログイン
-├── push-image.sh      # ECR へのプッシュ
-└── run.sh             # ローカル実行
+├── Dockerfile          # Container image build definition
+├── build.sh           # Build script
+├── config.sh          # Docker settings (image name, etc.)
+├── login.sh           # ECR login
+├── push-image.sh      # Push to ECR
+└── run.sh             # Local run
 
 kubernetes/
-└── pod.sample.yaml    # Pod 定義サンプル
+└── pod.sample.yaml    # Sample Pod definition
 ```
 
 ## Development Commands
 
-### 依存関係インストール
+### Installing dependencies
 ```bash
 pipenv install
 ```
 
-### ローカル実行
+### Running locally
 ```bash
 pipenv run python app/main.py
 ```
 
-### Docker イメージビルド
+### Building the Docker image
 ```bash
 cd docker
 ./build.sh
 ```
 
-### ECR へのプッシュ
+### Pushing to ECR
 ```bash
 cd docker
 ./login.sh
 ./push-image.sh
 ```
 
-### ローカル Docker 実行
+### Running Docker locally
 ```bash
 cd docker
 ./run.sh
@@ -70,34 +70,34 @@ cd docker
 
 ## Architecture Notes
 
-### 監視フロー
-1. `main.py` が 60秒ごとに各 deployment を処理
-2. `deployments.py` の `process_deployment()` が ECR イメージの更新を確認
-3. 更新がある場合、K8s Deployment の annotation を更新して Pod 再起動をトリガー
-4. Slack 通知を送信
+### Monitoring flow
+1. `main.py` processes each deployment every 60 seconds
+2. `process_deployment()` in `deployments.py` checks for ECR image updates
+3. If there is an update, it updates the K8s Deployment annotation to trigger a Pod restart
+4. Sends a Slack notification
 
-### 状態管理
-- `SimpleKVStore` を使用してイメージの push 日時や Secret 更新日時を永続化
-- `storage/` ディレクトリにファイルとして保存
+### State management
+- `SimpleKVStore` persists the image push date/time and the Secret update date/time
+- Stored as files in the `storage/` directory
 
-### Kubernetes 連携
-- ECR クレデンシャルを K8s Secret として自動作成・更新
-- Deployment の `imageUpdatedAt` annotation を更新して Pod 再起動
+### Kubernetes integration
+- Automatically creates and updates the ECR credentials as a K8s Secret
+- Updates the Deployment's `imageUpdatedAt` annotation to restart Pods
 
-### エラーハンドリング
-- 各 deployment の処理は独立しており、1つが失敗しても他は継続
-- エラーはログに記録され、次の周期で再試行
+### Error handling
+- Each deployment is processed independently; if one fails, the others continue
+- Errors are logged and retried in the next cycle
 
 ## Configuration
 
-設定は `config.yaml` で管理:
-- `awsEcrCredentials`: ECR アクセスのための AWS クレデンシャル設定
-- `deployments`: 監視対象の ECR リポジトリと対応する K8s Deployment の設定
+Configuration is managed in `config.yaml`:
+- `awsEcrCredentials`: AWS credential settings for accessing ECR
+- `deployments`: Settings for the ECR repositories to monitor and their corresponding K8s Deployments
 
-環境変数から AWS クレデンシャルを読み込むことも、直接設定に記述することも可能。
+AWS credentials can be read from environment variables or written directly in the config.
 
 ## Testing Approach
 
-テスト用のスクリプトは `~scratch/` ディレクトリに配置:
-- `test_kubernetes.py`: Kubernetes 接続テスト
-- `test_webhook.py`: Slack webhook テスト
+Test scripts are placed in the `~scratch/` directory:
+- `test_kubernetes.py`: Kubernetes connection test
+- `test_webhook.py`: Slack webhook test
